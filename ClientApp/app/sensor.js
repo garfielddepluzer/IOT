@@ -6,30 +6,29 @@
 const BME280 = require('bme280-sensor');
 
 // The BME280 constructor options are optional.
-// 
 const options = {
-  i2cBusNo   : 1, // defaults to 1
-  i2cAddress : BME280.BME280_DEFAULT_I2C_ADDRESS() // defaults to 0x77
+  i2cBusNo: 1, // defaults to 1
+  i2cAddress: BME280.BME280_DEFAULT_I2C_ADDRESS() // defaults to 0x77
 };
 
 function Sensor() {
-    this.bme280 = new BME280(options);
+  this.bme280 = new BME280(options);
 }
 
 Sensor.prototype.init = function (callback) {
-    this.bme280.init()
+  this.bme280.init()
     .then(callback)
     .catch((err) => {
-        console.error(err);
+      console.error(err);
     });
 }
 
 Sensor.prototype.read = function (callback) {
-    this.bme280.readSensorData()
-        .then((data) => {
-            callback(null, data);
-        })
-        .catch(callback);
+  this.bme280.readSensorData()
+    .then((data) => {
+      callback(null, data);
+    })
+    .catch(callback);
 }
 
 module.exports = Sensor;

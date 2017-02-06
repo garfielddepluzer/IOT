@@ -75,7 +75,7 @@ function sendMessages(period) {
   messageCount++;
   setTimeout(function () {
     messageCreator(messageCount, (error, messageContent) => {
-      if(error) {
+      if (error) {
         console.log('[Device] Create message error: ' + error.toString());
         sendMessages(period);
         return;
@@ -83,7 +83,7 @@ function sendMessages(period) {
       console.log("[Device] Sending message " + messageContent);
       var message = new Message(messageContent);
       client.sendEvent(message, (err) => {
-        if(err) {
+        if (err) {
           console.log('[Device] Send message error: ' + err.toString());
         }
         sendMessages(period);
@@ -103,24 +103,24 @@ function createMessage(count, callback) {
 function readMessage(count, callback) {
   getSensor(() => {
     sensor.read((error, data) => {
-    if(error) {
-      callback(error);
-      return;
-    }
-    // console.log(JSON.stringify(data));
-    callback(null, JSON.stringify({
-      messageId: count,
-      temperature: data.temperature_C,
-      humidity: data.humidity
-    }));
-  });
+      if (error) {
+        callback(error);
+        return;
+      }
+      // console.log(JSON.stringify(data));
+      callback(null, JSON.stringify({
+        messageId: count,
+        temperature: data.temperature_C,
+        humidity: data.humidity
+      }));
+    });
   });
 }
 
 function getSensor(callback) {
-  if(sensor) {
+  if (sensor) {
     callback(sensor);
-  }else{
+  } else {
     sensor = new Sensor();
     sensor.init(callback);
   }
