@@ -18,12 +18,10 @@ const DEFAULT_PERIOD = 2000;
 // read out all params and set default value
 var args = {
   connectionStringParam: process.argv[2],
-  sendMessagePeriod: process.argv[3] || DEFAULT_PERIOD,
+  sendMessagePeriod: parseInt(process.argv[3] + '') || DEFAULT_PERIOD,
   simulateDevice: (('' + process.argv[4]).toLowerCase() === 'true')
 }
 var sensor;
-
-console.log(process.argv[4]);
 
 // Read device connection string from command line arguments and parse it
 var connectionString = ConnectionString.parse(args.connectionStringParam);
@@ -63,33 +61,67 @@ function connectCallback(err, args) {
     console.log('[Device] Could not connect: ' + err);
   } else {
     console.log('[Device] Client connected\n');
-    sendMessages(null, args);
+    messageCreator = args.simulateDevice ? createMessage : readMessage
+    sendMessages(args.sendMessagePeriod);
   }
 }
 
 /**
  * Construct device-to-cloud message and send it to IoT Hub.
  */
-function sendMessages(err, args) {
-  if(err) {
-    console.log('[Device] Message error: ' + err.toString());
-    return;    
-  }
-  setTimeout(function() {
-    var messageContent = args.simulateDevice ? createMessage() : readMessage();
-    console.log("[Device] Sending message " + messageContent);
-    var message = new Message(messageContent);
-    client.sendEvent(message, (err) => {
-      sendMessages(err, args);
+var messageCount = 0;
+var messageCreator;
+function sendMessages(period) {
+  messageCount++;
+  setTimeout(function () {
+    messageCreator(messageCount, (error, messageContent) => {
+      if(error) {
+        console.log('[Device] Create message error: ' + error.toString());
+        sendMessages(period);
+        return;
+      }
+      console.log("[Device] Sending message " + messageContent);
+      var message = new Message(messageContent);
+      client.sendEvent(message, (err) => {
+        if(err) {
+          console.log('[Device] Send message error: ' + err.toString());
+        }
+        sendMessages(period);
+      });
     });
-  }, args.sendMessagePeriod);
+  }, period);
 }
 
-function createMessage() {
-  return JSON.stringify({messageId : 1});
+function createMessage(count, callback) {
+  callback(null, JSON.stringify({
+    messageId: count,
+    temperature: 20.0,
+    humidity: 30.0
+  }));
 }
 
-function readMessage() {
-  sensor = sensor || new Sensor();
-  return JSON.stringify(sensor.read());
+function readMessage(count, callback) {
+  getSensor(() => {
+    sensor.read((error, data) => {
+    if(error) {
+      callback(error);
+      return;
+    }
+    // console.log(JSON.stringify(data));
+    callback(null, JSON.stringify({
+      messageId: count,
+      temperature: data.temperature_C,
+      humidity: data.humidity
+    }));
+  });
+  });
+}
+
+function getSensor(callback) {
+  if(sensor) {
+    callback(sensor);
+  }else{
+    sensor = new Sensor();
+    sensor.init(callback);
+  }
 }
